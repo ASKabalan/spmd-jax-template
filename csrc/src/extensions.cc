@@ -2,6 +2,7 @@
 #include "mpi_ops.hpp"
 #include "nanobind/nanobind.h"
 #include "nccl_ops.hpp"
+#include "xla/ffi/api/api.h"
 #include "xla/ffi/api/c_api.h"
 #include "xla/ffi/api/ffi.h"
 #include <cuda_runtime.h>
@@ -114,7 +115,7 @@ ffi::Error AddElementImpl(cudaStream_t stream, float scaler,
   return ffi::Error::Success();
 }
 
-XLA_FFI_DEFINE_HANDLER(CollectiveCall, CollectiveImpl,
+XLA_FFI_DEFINE_HANDLER_SYMBOL(CollectiveCall, CollectiveImpl,
                        ffi::Ffi::Bind()
                            .Ctx<ffi::PlatformStream<cudaStream_t>>()
                            .Attr<int>("iBackend")
@@ -124,7 +125,7 @@ XLA_FFI_DEFINE_HANDLER(CollectiveCall, CollectiveImpl,
                            .Ret<ffi::Buffer<ffi::DataType::F32>>() // y
 );
 
-XLA_FFI_DEFINE_HANDLER(AddElement, AddElementImpl,
+XLA_FFI_DEFINE_HANDLER_SYMBOL(AddElement, AddElementImpl,
                        ffi::Ffi::Bind()
                            .Ctx<ffi::PlatformStream<cudaStream_t>>()
                            .Attr<float>("scaler") // scaler
@@ -140,9 +141,15 @@ template <typename T> nb::capsule EncapsulateFfiCall(T *fn) {
   return nb::capsule(reinterpret_cast<void *>(fn));
 }
 
+nb::dict Registrations() {
+  nb::dict d;
+  d["collective_call"] = EncapsulateFfiCall(CollectiveCall);
+  d["add_element"] = EncapsulateFfiCall(AddElement);
+  return d;
+}
+
 NB_MODULE(nccl_mpi_lib, m) {
-  m.def("collective_call", []() { return EncapsulateFfiCall(CollectiveCall); });
-  m.def("add_element", []() { return EncapsulateFfiCall(AddElement); });
+  m.def("registrations", &Registrations);
   nb::enum_<Backend>(m, "Backend")
       .value("NCCL", Backend::NCCL)
       .value("MPI", Backend::MPI)
