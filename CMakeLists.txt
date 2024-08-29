@@ -25,30 +25,15 @@ string(REPLACE "/lib64" "/include" NVHPC_NCCL_INCLUDE_DIR ${NVHPC_NCCL_LIBRARY_D
 
 # Add the executable
 # CUDA architecture 70 80 89
-
-find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
-message(STATUS "Python_EXECUTABLE: ${Python_EXECUTABLE}")
-# which Python_EXECUTABLE
-execute_process(
-  COMMAND "${Python_EXECUTABLE}" "-c" "import sys; print(sys.executable)"
-  OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE PYTHON_EXECUTABLE)
-message(STATUS "Python executable: ${PYTHON_EXECUTABLE}")
-execute_process(
-  COMMAND "${Python_EXECUTABLE}"
-          "-c" "from jax.extend import ffi; print(ffi.include_dir())"
-  OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE XLA_DIR)
-message(STATUS "XLA include directory: ${XLA_DIR}")
-
+find_package(Python 3.8
+  REQUIRED COMPONENTS Interpreter Development.Module
+  OPTIONAL_COMPONENTS Development.SABIModule)
 # # Detect the installed nanobind package and import it into CMake
-execute_process(
-  COMMAND "${Python_EXECUTABLE}" -m nanobind --cmake_dir
-  OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE nanobind_ROOT)
-message(STATUS "nanobind_ROOT: ${nanobind_ROOT}")
 find_package(nanobind CONFIG REQUIRED) 
 
 # Include directories for the executable
-set(SOURCES lib/src/extensions.cu)
-nanobind_add_module(nccl_mpi_lib STABLE_ABI ${SOURCES})
+set(SOURCES lib/src/extensions.cc lib/src/gpu_ops.cu)
+nanobind_add_module(nccl_mpi_lib STABLE_ABI NB_STATIC ${SOURCES})
 # add_library(nccl_mpi_lib SHARED ${SOURCES})
 set_target_properties(nccl_mpi_lib PROPERTIES CUDA_ARCHITECTURES "70;80;89")
 target_link_libraries(nccl_mpi_lib  PRIVATE NVHPC::CUDA NVHPC::MPI NVHPC::NCCL)
@@ -61,6 +46,6 @@ target_include_directories(nccl_mpi_lib PUBLIC
                            ${NVHPC_NCCL_INCLUDE_DIR}
                           )
 
-install(TARGETS nccl_mpi_lib DESTINATION gpu_ops)
+install(TARGETS nccl_mpi_lib LIBRARY DESTINATION ops)
 
 
