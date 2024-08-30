@@ -18,8 +18,6 @@ endif()
 find_package(CUDAToolkit REQUIRED VERSION 12)
 set(NVHPC_CUDA_VERSION ${CUDAToolkit_VERSION_MAJOR}.${CUDAToolkit_VERSION_MINOR})
 
-message(STATUS "Export command is ${CMAKE_EXPORT_COMPILE_COMMANDS}")
-
 find_package(MPI REQUIRED)
 find_package(NVHPC REQUIRED COMPONENTS MATH NCCL)
 
@@ -37,18 +35,19 @@ find_package(nanobind CONFIG REQUIRED)
 
 # Include directories for the executable
 set(SOURCES csrc/src/extensions.cc csrc/src/gpu_ops.cu)
-nanobind_add_module(nccl_mpi_lib STABLE_ABI NB_STATIC ${SOURCES})
-set_target_properties(nccl_mpi_lib PROPERTIES CUDA_ARCHITECTURES "70;80;89")
-target_link_libraries(nccl_mpi_lib  PRIVATE NVHPC::CUDA MPI::MPI_CXX NVHPC::NCCL)
-target_include_directories(nccl_mpi_lib PUBLIC 
+nanobind_add_module(gpu_ops STABLE_ABI NB_STATIC ${SOURCES})
+set_target_properties(gpu_ops PROPERTIES CUDA_ARCHITECTURES "70;80;89")
+target_link_libraries(gpu_ops  PRIVATE NVHPC::CUDA MPI::MPI_CXX NVHPC::NCCL)
+target_include_directories(gpu_ops PUBLIC 
                            csrc/include
                            ${XLA_DIR}
                            ${NVHPC_CUDA_INCLUDE_DIR}
                            ${NVHPC_MATH_INCLUDE_DIR}
                            ${MPI_CXX_INCLUDE_DIRS}
-                           ${NVHPC_NCCL_INCLUDE_DIR}
+                           ${NVHPC_NCCL_INCLUDE27_DIR}
                           )
 
-install(TARGETS nccl_mpi_lib LIBRARY DESTINATION ops)
+install(TARGETS gpu_ops LIBRARY DESTINATION nccl_mpi_benchmarks)
+
 
 

@@ -4,6 +4,7 @@
 #include "common/checks.h"
 #include <cuda_runtime.h>
 #include <iostream>
+#include <mpi-ext.h>
 #include <mpi.h>
 // Singleton implementation for managing MPI operations
 class MPIOpsImpl {
@@ -35,11 +36,12 @@ public:
 private:
   MPIOpsImpl()
       : rank(-1), size(-1), isInitialized(false),
-        isMPIalreadyInitialized(false) {
+        isMPIalreadyInitialized(false), mpi_comm(MPI_COMM_WORLD) {
 
-    MPI_Comm mpi_comm = MPI_COMM_WORLD;
     // Check if MPI has already been initialized
     MPICHECK(MPI_Initialized(&isMPIalreadyInitialized));
+    std::cout << "MPI already initialized: " << isMPIalreadyInitialized
+              << std::endl;
     if (!isMPIalreadyInitialized) {
       MPICHECK(MPI_Init(nullptr, nullptr));
     }
@@ -47,6 +49,14 @@ private:
     // Initialize MPI rank and size
     MPICHECK(MPI_Comm_rank(mpi_comm, &rank));
     MPICHECK(MPI_Comm_size(mpi_comm, &size));
+
+    if (1 == MPIX_Query_cuda_support()) {
+      printf("This MPI library has CUDA-aware support.\n");
+    } else {
+      printf("This MPI library does not have CUDA-aware support.\n");
+    }
+
+    std::cout << "MPI rank: " << rank << ", size: " << size << std::endl;
 
     isInitialized = true;
   }

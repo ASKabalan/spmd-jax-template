@@ -7,7 +7,6 @@
 #include <iostream>
 #include <mpi.h>
 #include <nccl.h>
-
 // Singleton implementation for managing NCCL operations
 class NCCLOpsImpl {
 public:
