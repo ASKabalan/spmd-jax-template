@@ -120,19 +120,28 @@ ffi::Error CollectiveImpl(cudaStream_t stream, int64_t backend,
         break;
       case Collective::AllToAll:
         if (e_mode == Mode::InPlace) {
-          MPI_Alltoall(x.untyped_data(), x.element_count(), MPI_FLOAT,
-                       y->untyped_data(), x.element_count(), MPI_FLOAT,
-                       MPI_COMM_WORLD);
-          break;
-        } else {
           MPI_Alltoall(MPI_IN_PLACE, 0, MPI_FLOAT, x.untyped_data(),
                        x.element_count(), MPI_FLOAT, MPI_COMM_WORLD);
+          break;
+        } else {
+          MPI_Alltoall(x.untyped_data(), (int)(x.element_count() / size),
+                       MPI_FLOAT, y->untyped_data(),
+                       (int)(x.element_count() / size), MPI_FLOAT,
+                       MPI_COMM_WORLD);
         }
         break;
       case Collective::Peer2Peer:
-        MPI_Sendrecv(x.untyped_data(), x.element_count(), MPI_FLOAT, next_rank,
-                     0, y->untyped_data(), y->element_count(), MPI_FLOAT, rank,
-                     0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        if (rank < next_rank) {
+          MPI_Send(x.untyped_data(), x.element_count(), MPI_FLOAT, next_rank, 0,
+                   MPI_COMM_WORLD);
+          MPI_Recv(y->untyped_data(), y->element_count(), MPI_FLOAT, next_rank,
+                   0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        } else {
+          MPI_Recv(y->untyped_data(), y->element_count(), MPI_FLOAT, next_rank,
+                   0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+          MPI_Send(x.untyped_data(), x.element_count(), MPI_FLOAT, next_rank, 0,
+                   MPI_COMM_WORLD);
+        }
         break;
       }
     } else {
@@ -167,8 +176,8 @@ ffi::Error CollectiveImpl(cudaStream_t stream, int64_t backend,
       }
     }
     CUDACHECK(cudaStreamSynchronize(stream));
-    MPI_Barrier(MPI_COMM_WORLD);
     double elapsed_ms = perf.Stop();
+    MPI_Barrier(MPI_COMM_WORLD);
     if (enable_perf) {
       MPI_Allreduce(MPI_IN_PLACE, &elapsed_ms, 1, MPI_DOUBLE, MPI_SUM,
                     MPI_COMM_WORLD);
@@ -220,7 +229,6 @@ ffi::Error CollectiveImpl(cudaStream_t stream, int64_t backend,
   }
   return ffi::Error::Success();
 }
-
 ffi::Error AddElementImpl(cudaStream_t stream, float scaler,
                           ffi::Buffer<ffi::DataType::F32> x,
                           ffi::Result<ffi::Buffer<ffi::DataType::F32>> y) {

@@ -44,7 +44,14 @@ def p2p_nccl(operand):
 def p2p_mpi(operand):
         return nmb.ops.collective_call(operand , nmb.Backend.MPI, nmb.Collective.Peer2Peer, nmb.Mode.OutOfPlace)
 
-sizes_in_gb = np.arange(1, 2, 1)
+@partial(shard_map , mesh=mesh, in_specs=P('gpus') , out_specs=P('gpus'),check_rep=False)
+def all2all_nccl(operand):
+        return nmb.ops.collective_call(operand , nmb.Backend.NCCL, nmb.Collective.AllToAll, nmb.Mode.OutOfPlace)
+
+def all2all_mpi(operand):
+        return nmb.ops.collective_call(operand , nmb.Backend.MPI, nmb.Collective.AllToAll, nmb.Mode.OutOfPlace)
+
+sizes_in_gb = np.arange(1, 10, 1)
 
 for size_in_gb in sizes_in_gb:
   element_count = size_in_gb * 1024 * 1024 * 1024 // 4
@@ -53,6 +60,14 @@ for size_in_gb in sizes_in_gb:
   gspmd_array = create_global_array(global_shape)
 
   result_nccl = all_reduce_nccl(gspmd_array)
+  del result_nccl
   result_mpi = all_reduce_mpi(gspmd_array)
+  del result_mpi
   result_p2p_nccl = p2p_nccl(gspmd_array)
+  del result_p2p_nccl
   result_p2p_mpi = p2p_mpi(gspmd_array)
+  del result_p2p_mpi
+  result_all2all_nccl = all2all_nccl(gspmd_array)
+  del result_all2all_nccl
+  result_all2all_mpi = all2all_mpi(gspmd_array)
+  del result_all2all_mpi
