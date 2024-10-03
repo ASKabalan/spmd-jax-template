@@ -30,6 +30,10 @@ string(REPLACE "/lib64" "/include" NVHPC_NCCL_INCLUDE_DIR ${NVHPC_NCCL_LIBRARY_D
 find_package(Python 3.8
   REQUIRED COMPONENTS Interpreter Development.Module
   OPTIONAL_COMPONENTS Development.SABIModule)
+set(XLA_DIR ${Python_SITELIB}/jaxlib/include)
+message(STATUS "XLA_DIR: ${XLA_DIR}")
+
+
 # Detect the installed nanobind package and import it into CMake
 find_package(nanobind CONFIG REQUIRED) 
 
