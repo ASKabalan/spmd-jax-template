@@ -19,7 +19,7 @@ CompileFlags:
   Add:
     # Allow variadic CUDA functions
     - "-Xclang=-fcuda-allow-variadic-functions"
-    - "-I../../include"
+    - "-I../../csrc/include"
 
 ---
 

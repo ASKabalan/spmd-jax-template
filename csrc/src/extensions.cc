@@ -89,7 +89,7 @@ ffi::Error CollectiveImpl(cudaStream_t stream, int64_t backend, int64_t collecti
     //  NCCL inits
     NCCLOps nccl_ops;
     ncclComm_t comm = nccl_ops.get_comm();
-    size_t chunk_size = x.element_count() / size;
+    int chunk_size = x.element_count() / size;
     // Pair ranks permute with Odd ranks
     // So if rank is even, next_rank is rank + 1
     // If rank is odd, next_rank is rank - 1
@@ -134,9 +134,8 @@ ffi::Error CollectiveImpl(cudaStream_t stream, int64_t backend, int64_t collecti
                                      MPI_FLOAT, MPI_COMM_WORLD);
                         break;
                     } else {
-                        MPI_Alltoall(x.untyped_data(), (int)(x.element_count() / size), MPI_FLOAT,
-                                     y->untyped_data(), (int)(x.element_count() / size), MPI_FLOAT,
-                                     MPI_COMM_WORLD);
+                        MPI_Alltoall(x.untyped_data(), chunk_size, MPI_FLOAT, y->untyped_data(), chunk_size,
+                                     MPI_FLOAT, MPI_COMM_WORLD);
                     }
                     break;
                 case Collective::Peer2Peer:
